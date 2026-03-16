@@ -1,5 +1,5 @@
 // ==============================
-// FILE: script.js (versione migliorata)
+// FILE: script.js (versione completa)
 // ==============================
 
 const BASE_URL = "https://cordovado-booking1.onrender.com";
@@ -37,9 +37,13 @@ document.addEventListener("DOMContentLoaded", () => {
     .getElementById("bookingForm")
     .addEventListener("submit", handleBookingSubmit);
 
-  // Nuovi bottoni
+  // Bottoni lista e statistiche
   document.getElementById("btnList").addEventListener("click", showList);
   document.getElementById("btnStats").addEventListener("click", showStats);
+
+  // Bottoni copia
+  document.getElementById("btnCopyList").addEventListener("click", copyList);
+  document.getElementById("btnCopyStats").addEventListener("click", copyStats);
 
   // Carica prenotazioni e mostra calendario
   loadBookings().then(renderCalendar);
@@ -214,6 +218,23 @@ function showList() {
 }
 
 // ==============================
+// COPIA LISTA
+// ==============================
+function copyList() {
+  const container = document.getElementById("listContainer");
+  const text = container.innerText;
+
+  if (!text.trim()) {
+    alert("Nessuna lista da copiare.");
+    return;
+  }
+
+  navigator.clipboard.writeText(text)
+    .then(() => alert("Lista copiata negli appunti!"))
+    .catch(() => alert("Errore nella copia."));
+}
+
+// ==============================
 // STATISTICHE IN PERCENTUALE
 // ==============================
 function showStats() {
@@ -249,4 +270,21 @@ function showStats() {
   });
 
   container.appendChild(ul);
+}
+
+// ==============================
+// COPIA STATISTICHE
+// ==============================
+function copyStats() {
+  const container = document.getElementById("statsContainer");
+  const text = container.innerText;
+
+  if (!text.trim()) {
+    alert("Nessuna statistica da copiare.");
+    return;
+  }
+
+  navigator.clipboard.writeText(text)
+    .then(() => alert("Statistiche copiate negli appunti!"))
+    .catch(() => alert("Errore nella copia."));
 }
