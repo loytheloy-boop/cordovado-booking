@@ -20,13 +20,13 @@ app.use(express.json());
 const frontendPath = path.join(__dirname, "..", "frontend");
 app.use(express.static(frontendPath));
 
+// ==============================
+// LETTURA E SCRITTURA FILE
+// ==============================
 function readBookings() {
-  if (!fs.existsSync(bookingsFile)) {
-    return [];
-  }
-  const raw = fs.readFileSync(bookingsFile, "utf-8");
+  if (!fs.existsSync(bookingsFile)) return [];
   try {
-    return JSON.parse(raw);
+    return JSON.parse(fs.readFileSync(bookingsFile, "utf-8"));
   } catch (e) {
     console.error("Errore parsing bookings.json:", e);
     return [];
@@ -34,12 +34,13 @@ function readBookings() {
 }
 
 function writeBookings(bookings) {
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
+  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
   fs.writeFileSync(bookingsFile, JSON.stringify(bookings, null, 2), "utf-8");
 }
 
+// ==============================
+// OVERLAP DATE
+// ==============================
 function rangesOverlap(startA, endA, startB, endB) {
   const aStart = new Date(startA);
   const aEnd = new Date(endA);
@@ -48,6 +49,9 @@ function rangesOverlap(startA, endA, startB, endB) {
   return aStart <= bEnd && bStart <= aEnd;
 }
 
+// ==============================
+// SMTP (opzionale)
+// ==============================
 let transporter = null;
 if (
   process.env.SMTP_HOST &&
@@ -66,37 +70,38 @@ if (
     }
   });
 } else {
-  console.warn(
-    "ATTENZIONE: Configurazione SMTP non completa. Le email di notifica NON verranno inviate."
-  );
+  console.warn("SMTP non configurato. Le email NON verranno inviate.");
 }
+
+// ==============================
+// API
+// ==============================
 app.get("/", (req, res) => {
   res.send("Backend attivo e funzionante!");
 });
+
+// GET PRENOTAZIONI
 app.get("/api/bookings", (req, res) => {
-  const bookings = readBookings();
-  res.json(bookings);
+  res.json(readBookings());
 });
 
+// POST PRENOTAZIONE
 app.post("/api/bookings", async (req, res) => {
   const { name, startDate, endDate } = req.body;
 
-  if (!name || !startDate || !endDate) {
+  if (!name || !startDate || !endDate)
     return res.status(400).json({ error: "Dati mancanti" });
-  }
 
   const start = new Date(startDate);
   const end = new Date(endDate);
 
-  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+  if (isNaN(start) || isNaN(end))
     return res.status(400).json({ error: "Date non valide" });
-  }
 
-  if (end < start) {
-    return res
-      .status(400)
-      .json({ error: "La data di fine non può essere precedente alla data di inizio" });
-  }
+  if (end < start)
+    return res.status(400).json({
+      error: "La data di fine non può essere precedente alla data di inizio"
+    });
 
   const bookings = readBookings();
 
@@ -104,11 +109,8 @@ app.post("/api/bookings", async (req, res) => {
     rangesOverlap(startDate, endDate, b.startDate, b.endDate)
   );
 
-  if (overlap) {
-    return res
-      .status(409)
-      .json({ error: "Le date selezionate sono già occupate" });
-  }
+  if (overlap)
+    return res.status(409).json({ error: "Le date selezionate sono già occupate" });
 
   const newBooking = {
     id: Date.now(),
@@ -120,33 +122,29 @@ app.post("/api/bookings", async (req, res) => {
   bookings.push(newBooking);
   writeBookings(bookings);
 
-  if (transporter) {
-    const recipients = process.env.NOTIFY_EMAILS;
-    const subject = "Nuova prenotazione casa Cordovado";
-    const text = `Nuova prenotazione inserita:
-
-Da: ${startDate}
-A:  ${endDate}
-Prenotato da: ${name}
-`;
-
-    try {
-      await transporter.sendMail({
-        from: `"Calendario Cordovado" <${process.env.SMTP_USER}>`,
-        to: recipients,
-        subject,
-        text
-      });
-      console.log("Email di notifica inviata");
-    } catch (err) {
-      console.error("Errore invio email:", err);
-    }
-  }
-
   res.status(201).json(newBooking);
 });
 
+// ==============================
+// DELETE PRENOTAZIONE
+// ==============================
+app.delete("/api/bookings/:id", (req, res) => {
+  const id = Number(req.params.id);
+
+  let bookings = readBookings();
+  const newList = bookings.filter(b => b.id !== id);
+
+  if (newList.length === bookings.length) {
+    return res.status(404).json({ error: "Prenotazione non trovata" });
+  }
+
+  writeBookings(newList);
+  res.json({ success: true });
+});
+
+// ==============================
+// AVVIO SERVER
+// ==============================
 app.listen(PORT, () => {
   console.log(`Server avviato su http://localhost:${PORT}`);
 });
-
