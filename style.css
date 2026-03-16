@@ -1,6 +1,15 @@
 // ==============================
 // FILE: frontend/style.css
 // ==============================
+.header-image {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.header-image img {
+  max-width: 300px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
 body {
   font-family: Arial, sans-serif;
   margin: 20px;
