@@ -70,7 +70,9 @@ if (
     "ATTENZIONE: Configurazione SMTP non completa. Le email di notifica NON verranno inviate."
   );
 }
-
+app.get("/", (req, res) => {
+  res.send("Backend attivo e funzionante!");
+});
 app.get("/api/bookings", (req, res) => {
   const bookings = readBookings();
   res.json(bookings);
