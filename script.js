@@ -1,7 +1,6 @@
 // ==============================
-// FILE: script.js (versione completa)
+// FILE: frontend/script.js
 // ==============================
-
 const BASE_URL = "https://cordovado-booking1.onrender.com";
 
 let bookings = [];
@@ -13,7 +12,6 @@ document.addEventListener("DOMContentLoaded", () => {
   currentYear = today.getFullYear();
   currentMonth = today.getMonth();
 
-  // Navigazione mesi
   document.getElementById("prevMonth").addEventListener("click", () => {
     currentMonth--;
     if (currentMonth < 0) {
@@ -32,25 +30,20 @@ document.addEventListener("DOMContentLoaded", () => {
     renderCalendar();
   });
 
-  // Form prenotazione
   document
     .getElementById("bookingForm")
     .addEventListener("submit", handleBookingSubmit);
 
-  // Bottoni lista e statistiche
   document.getElementById("btnList").addEventListener("click", showList);
   document.getElementById("btnStats").addEventListener("click", showStats);
-
-  // Bottoni copia
   document.getElementById("btnCopyList").addEventListener("click", copyList);
   document.getElementById("btnCopyStats").addEventListener("click", copyStats);
 
-  // Carica prenotazioni e mostra calendario
   loadBookings().then(renderCalendar);
 });
 
 // ==============================
-// CARICAMENTO PRENOTAZIONI
+// CARICA PRENOTAZIONI
 // ==============================
 async function loadBookings() {
   try {
@@ -63,15 +56,15 @@ async function loadBookings() {
 }
 
 // ==============================
-// RENDER CALENDARIO
+// CALENDARIO
 // ==============================
 function renderCalendar() {
   const calendarEl = document.getElementById("calendar");
   calendarEl.innerHTML = "";
 
   const monthNames = [
-    "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
-    "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
+    "Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
+    "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"
   ];
 
   document.getElementById("currentMonth").textContent =
@@ -80,7 +73,7 @@ function renderCalendar() {
   const headerRow = document.createElement("div");
   headerRow.className = "calendar-grid";
 
-  const dayNames = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
+  const dayNames = ["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
   dayNames.forEach((d) => {
     const cell = document.createElement("div");
     cell.className = "calendar-header";
@@ -193,7 +186,7 @@ async function handleBookingSubmit(event) {
 }
 
 // ==============================
-// LISTA PRENOTAZIONI ORDINATA
+// LISTA PRENOTAZIONI + ELIMINA
 // ==============================
 function showList() {
   const container = document.getElementById("listContainer");
@@ -210,39 +203,69 @@ function showList() {
 
   sorted.forEach(b => {
     const li = document.createElement("li");
-    li.textContent = `${b.name}: dal ${b.startDate} al ${b.endDate}`;
+
+    li.innerHTML = `
+      ${b.name}: dal ${b.startDate} al ${b.endDate}
+      <button class="deleteBtn" data-id="${b.id}">Elimina</button>
+    `;
+
     ul.appendChild(li);
   });
 
   container.appendChild(ul);
+
+  document.querySelectorAll(".deleteBtn").forEach(btn => {
+    btn.addEventListener("click", () => deleteBooking(btn.dataset.id));
+  });
+}
+
+// ==============================
+// CANCELLAZIONE PRENOTAZIONE
+// ==============================
+async function deleteBooking(id) {
+  const ok = confirm("Sei sicuro di voler eliminare questa prenotazione?");
+  if (!ok) return;
+
+  try {
+    const res = await fetch(`${BASE_URL}/api/bookings/${id}`, {
+      method: "DELETE"
+    });
+
+    if (!res.ok) {
+      alert("Errore durante la cancellazione.");
+      return;
+    }
+
+    await loadBookings();
+    renderCalendar();
+    showList();
+
+    alert("Prenotazione eliminata.");
+  } catch (err) {
+    console.error("Errore cancellazione:", err);
+    alert("Errore di comunicazione con il server.");
+  }
 }
 
 // ==============================
 // COPIA LISTA
 // ==============================
 function copyList() {
-  const container = document.getElementById("listContainer");
-  const text = container.innerText;
-
-  if (!text.trim()) {
-    alert("Nessuna lista da copiare.");
-    return;
-  }
-
-  navigator.clipboard.writeText(text)
-    .then(() => alert("Lista copiata negli appunti!"))
-    .catch(() => alert("Errore nella copia."));
+  const text = document.getElementById("listContainer").innerText;
+  if (!text.trim()) return alert("Nessuna lista da copiare.");
+  navigator.clipboard.writeText(text);
+  alert("Lista copiata!");
 }
 
 // ==============================
-// STATISTICHE IN PERCENTUALE
+// STATISTICHE
 // ==============================
 function showStats() {
   const container = document.getElementById("statsContainer");
   container.innerHTML = "";
 
   if (bookings.length === 0) {
-    container.textContent = "Nessuna prenotazione presente.";
+    container.textContent = "Nessuna statistica disponibile.";
     return;
   }
 
@@ -276,15 +299,8 @@ function showStats() {
 // COPIA STATISTICHE
 // ==============================
 function copyStats() {
-  const container = document.getElementById("statsContainer");
-  const text = container.innerText;
-
-  if (!text.trim()) {
-    alert("Nessuna statistica da copiare.");
-    return;
-  }
-
-  navigator.clipboard.writeText(text)
-    .then(() => alert("Statistiche copiate negli appunti!"))
-    .catch(() => alert("Errore nella copia."));
+  const text = document.getElementById("statsContainer").innerText;
+  if (!text.trim()) return alert("Nessuna statistica da copiare.");
+  navigator.clipboard.writeText(text);
+  alert("Statistiche copiate!");
 }
