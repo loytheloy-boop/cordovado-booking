@@ -1,255 +1,67 @@
-// ==============================
-// FILE: Doc/index.html
-// ==============================
-// ==============================
-// FILE: script.js (versione migliorata)
-// ==============================
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calendario Prenotazioni Cordovado</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
 
-const BASE_URL = "https://cordovado-booking1.onrender.com";
+<body>
 
-let bookings = [];
-let currentYear;
-let currentMonth;
+  <!-- IMMAGINE INTESTAZIONE -->
+  <div class="header-image">
+    <img src="immagine.jpg" alt="Intestazione" />
+  </div>
 
-document.addEventListener("DOMContentLoaded", () => {
-  const today = new Date();
-  currentYear = today.getFullYear();
-  currentMonth = today.getMonth();
+  <h1>Calendario Prenotazioni</h1>
 
-  // Navigazione mesi
-  document.getElementById("prevMonth").addEventListener("click", () => {
-    currentMonth--;
-    if (currentMonth < 0) {
-      currentMonth = 11;
-      currentYear--;
-    }
-    renderCalendar();
-  });
+  <!-- CONTROLLI CALENDARIO -->
+  <div class="calendar-controls">
+    <button id="prevMonth">◀</button>
+    <span id="currentMonth"></span>
+    <button id="nextMonth">▶</button>
+  </div>
 
-  document.getElementById("nextMonth").addEventListener("click", () => {
-    currentMonth++;
-    if (currentMonth > 11) {
-      currentMonth = 0;
-      currentYear++;
-    }
-    renderCalendar();
-  });
+  <!-- CALENDARIO -->
+  <div id="calendar"></div>
 
-  // Form prenotazione
-  document
-    .getElementById("bookingForm")
-    .addEventListener("submit", handleBookingSubmit);
+  <!-- FORM PRENOTAZIONE -->
+  <form id="bookingForm">
+    <label>
+      Nome:
+      <input type="text" id="name" required />
+    </label>
 
-  // Nuovi bottoni
-  document.getElementById("btnList").addEventListener("click", showList);
-  document.getElementById("btnStats").addEventListener("click", showStats);
+    <label>
+      Data inizio:
+      <input type="date" id="startDate" required />
+    </label>
 
-  // Carica prenotazioni e mostra calendario
-  loadBookings().then(renderCalendar);
-});
+    <label>
+      Data fine:
+      <input type="date" id="endDate" required />
+    </label>
 
-// ==============================
-// CARICAMENTO PRENOTAZIONI
-// ==============================
-async function loadBookings() {
-  try {
-    const res = await fetch(`${BASE_URL}/api/bookings`);
-    bookings = await res.json();
-  } catch (err) {
-    console.error("Errore caricamento prenotazioni:", err);
-    bookings = [];
-  }
-}
+    <button type="submit">Prenota</button>
 
-// ==============================
-// RENDER CALENDARIO
-// ==============================
-function renderCalendar() {
-  const calendarEl = document.getElementById("calendar");
-  calendarEl.innerHTML = "";
+    <div id="message"></div>
+  </form>
 
-  const monthNames = [
-    "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
-    "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
-  ];
+  <!-- BOTTONI LISTA E STATISTICHE -->
+  <div class="extra-buttons">
+    <button id="btnList">Elenco prenotazioni</button>
+    <button id="btnCopyList">Copia lista</button>
 
-  document.getElementById("currentMonth").textContent =
-    monthNames[currentMonth] + " " + currentYear;
+    <button id="btnStats">Statistiche</button>
+    <button id="btnCopyStats">Copia statistiche</button>
+  </div>
 
-  const headerRow = document.createElement("div");
-  headerRow.className = "calendar-grid";
+  <!-- CONTENITORI RISULTATI -->
+  <div id="listContainer"></div>
+  <div id="statsContainer"></div>
 
-  const dayNames = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
-  dayNames.forEach((d) => {
-    const cell = document.createElement("div");
-    cell.className = "calendar-header";
-    cell.textContent = d;
-    headerRow.appendChild(cell);
-  });
+  <script src="script.js"></script>
 
-  calendarEl.appendChild(headerRow);
-
-  const grid = document.createElement("div");
-  grid.className = "calendar-grid";
-
-  const firstDay = new Date(currentYear, currentMonth, 1);
-  const lastDay = new Date(currentYear, currentMonth + 1, 0);
-  const firstWeekday = (firstDay.getDay() + 6) % 7;
-
-  for (let i = 0; i < firstWeekday; i++) {
-    const emptyCell = document.createElement("div");
-    emptyCell.className = "calendar-day";
-    grid.appendChild(emptyCell);
-  }
-
-  for (let day = 1; day <= lastDay.getDate(); day++) {
-    const dateObj = new Date(currentYear, currentMonth, day);
-    const dateStr = dateObj.toISOString().slice(0, 10);
-
-    const cell = document.createElement("div");
-    cell.className = "calendar-day";
-
-    const dayNumber = document.createElement("div");
-    dayNumber.className = "calendar-day-number";
-    dayNumber.textContent = day;
-    cell.appendChild(dayNumber);
-
-    const dayBookings = bookings.filter((b) =>
-      isDateInRange(dateStr, b.startDate, b.endDate)
-    );
-
-    if (dayBookings.length > 0) {
-      cell.classList.add("booked");
-      const info = document.createElement("div");
-      info.className = "booking-info";
-      info.textContent =
-        "Occupato da: " +
-        dayBookings
-          .map((b) => b.name)
-          .filter((v, i, a) => a.indexOf(v) === i)
-          .join(", ");
-      cell.appendChild(info);
-    } else {
-      cell.classList.add("free");
-    }
-
-    grid.appendChild(cell);
-  }
-
-  calendarEl.appendChild(grid);
-}
-
-function isDateInRange(dateStr, startStr, endStr) {
-  const d = new Date(dateStr);
-  const s = new Date(startStr);
-  const e = new Date(endStr);
-  return d >= s && d <= e;
-}
-
-// ==============================
-// INVIO PRENOTAZIONE
-// ==============================
-async function handleBookingSubmit(event) {
-  event.preventDefault();
-  const name = document.getElementById("name").value.trim();
-  const startDate = document.getElementById("startDate").value;
-  const endDate = document.getElementById("endDate").value;
-  const messageEl = document.getElementById("message");
-  messageEl.textContent = "";
-
-  if (!name || !startDate || !endDate) {
-    messageEl.textContent = "Compila tutti i campi.";
-    messageEl.style.color = "red";
-    return;
-  }
-
-  try {
-    const res = await fetch(`${BASE_URL}/api/bookings`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, startDate, endDate })
-    });
-
-    if (!res.ok) {
-      const errData = await res.json();
-      messageEl.textContent = errData.error || "Errore nella prenotazione.";
-      messageEl.style.color = "red";
-      return;
-    }
-
-    await loadBookings();
-    renderCalendar();
-
-    messageEl.textContent = "Prenotazione inserita con successo!";
-    messageEl.style.color = "green";
-
-    document.getElementById("bookingForm").reset();
-  } catch (err) {
-    console.error("Errore invio prenotazione:", err);
-    messageEl.textContent = "Errore di comunicazione con il server.";
-    messageEl.style.color = "red";
-  }
-}
-
-// ==============================
-// LISTA PRENOTAZIONI ORDINATA
-// ==============================
-function showList() {
-  const container = document.getElementById("listContainer");
-  container.innerHTML = "";
-
-  if (bookings.length === 0) {
-    container.textContent = "Nessuna prenotazione presente.";
-    return;
-  }
-
-  const sorted = [...bookings].sort((a, b) => a.name.localeCompare(b.name));
-
-  const ul = document.createElement("ul");
-
-  sorted.forEach(b => {
-    const li = document.createElement("li");
-    li.textContent = `${b.name}: dal ${b.startDate} al ${b.endDate}`;
-    ul.appendChild(li);
-  });
-
-  container.appendChild(ul);
-}
-
-// ==============================
-// STATISTICHE IN PERCENTUALE
-// ==============================
-function showStats() {
-  const container = document.getElementById("statsContainer");
-  container.innerHTML = "";
-
-  if (bookings.length === 0) {
-    container.textContent = "Nessuna prenotazione presente.";
-    return;
-  }
-
-  const stats = {};
-  let totalDays = 0;
-
-  bookings.forEach(b => {
-    const start = new Date(b.startDate);
-    const end = new Date(b.endDate);
-    const days = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
-
-    if (!stats[b.name]) stats[b.name] = 0;
-    stats[b.name] += days;
-
-    totalDays += days;
-  });
-
-  const ul = document.createElement("ul");
-
-  Object.entries(stats).forEach(([name, days]) => {
-    const perc = ((days / totalDays) * 100).toFixed(1);
-    const li = document.createElement("li");
-    li.textContent = `${name}: ${days} giorni (${perc}%)`;
-    ul.appendChild(li);
-  });
-
-  container.appendChild(ul);
-}
+</body>
+</html>
