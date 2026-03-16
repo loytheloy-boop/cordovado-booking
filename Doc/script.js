@@ -1,6 +1,8 @@
 // ==============================
 // FILE: frontend/script.js
 // ==============================
+const BASE_URL = "https://cordovado-booking1.onrender.com";
+
 let bookings = [];
 let currentYear;
 let currentMonth;
@@ -37,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function loadBookings() {
   try {
-    const res = await fetch("/api/bookings");
+    const res = await fetch(`${BASE_URL}/api/bookings`);
     bookings = await res.json();
   } catch (err) {
     console.error("Errore caricamento prenotazioni:", err);
@@ -152,7 +154,7 @@ async function handleBookingSubmit(event) {
   }
 
   try {
-    const res = await fetch("/api/bookings", {
+    const res = await fetch(`${BASE_URL}/api/bookings`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
